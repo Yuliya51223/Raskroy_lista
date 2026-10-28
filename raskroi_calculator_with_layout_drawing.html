@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Калькулятор раскроя листа</title>
+  <style>
+    :root{
+      --bg:#f5f5f2; --card:#fff; --text:#222; --muted:#666; --line:#ddd;
+      --accent:#2f5f4f; --accent-dark:#234838; --soft:#eef3ef;
+      --danger:#9b2c2c; --danger-bg:#fff0f0; --warn-bg:#fff6df; --warn-line:#ead8a1;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.45}
+    .wrap{max-width:1320px;margin:0 auto;padding:28px 16px 44px}
+    header{margin-bottom:20px}
+    h1{margin:0 0 8px;font-size:30px;line-height:1.15}
+    h2{margin:0 0 14px;font-size:21px}
+    h3{margin:20px 0 10px;font-size:17px}
+    .subtitle,.note{color:var(--muted);font-size:14px}
+    .subtitle{font-size:16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.05);margin-bottom:18px}
+    label{display:block;margin:0 0 6px;font-weight:700;font-size:14px}
+    input{width:100%;padding:11px 12px;border:1px solid #cfcfcf;border-radius:10px;font-size:15px;background:#fff}
+    .settings-grid{display:grid;grid-template-columns:220px 1fr;gap:14px;align-items:end;margin-bottom:14px}
+    .items{display:grid;gap:12px;margin-top:14px}
+    .item{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fbfbfb}
+    .item-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}
+    .item-title{font-weight:800;font-size:16px}
+    .item-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr;gap:12px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    button{padding:12px 16px;border:0;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+    button:hover{background:var(--accent-dark)}
+    .btn-secondary{background:#e7ece8;color:#1f3e34;border:1px solid #ccd9cf}
+    .btn-secondary:hover{background:#d9e3db}
+    .btn-danger{background:var(--danger-bg);color:var(--danger);border:1px solid #e5b7b7;padding:9px 12px;font-size:13px}
+    .btn-danger:hover{background:#ffe4e4}
+    .result-big{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+    .metric{background:var(--soft);border-radius:14px;padding:14px;border:1px solid #dce6dd}
+    .metric .name{font-size:13px;color:var(--muted);margin-bottom:6px}
+    .metric .value{font-size:23px;font-weight:800;white-space:nowrap}
+    .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin-top:10px}
+    table{width:100%;border-collapse:collapse;font-size:14px;min-width:1120px;background:#fff}
+    th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:right;vertical-align:top}
+    th{background:#f7f7f7;font-size:13px;color:#444}
+    th:first-child,td:first-child{text-align:left;font-weight:700}
+    tr:last-child td{border-bottom:0}
+    .patterns-table td:nth-child(3),.patterns-table th:nth-child(3){text-align:left}
+    .formula{background:#fafafa;border:1px solid var(--line);border-radius:12px;padding:13px;margin-top:12px;font-family:"Courier New",monospace;font-size:14px;overflow-x:auto}
+    .warning{margin-top:12px;padding:12px;border-radius:12px;background:var(--warn-bg);border:1px solid var(--warn-line);color:#5f4a12;display:none}
+    .ok{margin-top:12px;padding:12px;border-radius:12px;background:#eef7ef;border:1px solid #cfe3d1;color:#244a2a}
+    .drawings{display:grid;gap:18px;margin-top:12px}
+    .drawing-card{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fbfbfb;page-break-inside:avoid}
+    .drawing-title{font-weight:800;margin-bottom:8px}
+    .drawing-meta{color:var(--muted);font-size:13px;margin-bottom:10px}
+    .svg-holder{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}
+    .svg-holder svg{display:block;max-width:100%;height:auto}
+    .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:10px;font-size:13px}
+    .legend-item{display:flex;gap:8px;align-items:center;border:1px solid #e5e5e5;border-radius:10px;padding:7px;background:#fff}
+    .swatch{width:18px;height:18px;border:1px solid #777;border-radius:4px;flex:0 0 18px}
+    @media(max-width:1040px){.result-big{grid-template-columns:repeat(2,1fr)}.item-grid{grid-template-columns:1fr 1fr}.settings-grid{grid-template-columns:1fr}}
+    @media(max-width:560px){.result-big{grid-template-columns:1fr}.item-grid{grid-template-columns:1fr}h1{font-size:25px}.actions button{width:100%}}
+    @media print{
+      body{background:#fff}.wrap{max-width:none;padding:0}.card{box-shadow:none;border:0}.no-print,.items,.warning,.formula,.table-wrap{display:none!important}
+      .drawing-card{border:1px solid #999;margin-bottom:10mm}.svg-holder{border:0;overflow:visible}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Калькулятор раскроя плоского листа</h1>
+    <div class="subtitle">Расчёт, общий итог и чертёж раскладки разверток на листе.</div>
+  </header>
+
+  <section class="card no-print">
+    <h2>Исходные данные</h2>
+    <div class="settings-grid">
+      <div>
+        <label for="scaleDenom">Масштаб чертежа 1:</label>
+        <input id="scaleDenom" type="number" value="20" min="1" oninput="calculate()">
+      </div>
+      <div class="note">
+        У каждого изделия можно задать свою ширину листа. По умолчанию — 1250 мм. Изделия с одинаковой шириной листа кроятся совместно.
+      </div>
+    </div>
+
+    <div id="items" class="items"></div>
+
+    <div class="actions">
+      <button type="button" onclick="addItem()">+ Добавить изделие</button>
+      <button type="button" class="btn-secondary" onclick="calculate()">Рассчитать</button>
+      <button type="button" class="btn-secondary" onclick="window.print()">Печать / сохранить PDF</button>
+    </div>
+
+    <div id="warning" class="warning"></div>
+
+    <div class="note" style="margin-top:12px">
+      Без учёта толщины реза, технологических припусков и брака. Длина каждого листа/ряда берётся по самой длинной заготовке в этом ряду.
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Общий итог</h2>
+    <div class="result-big">
+      <div class="metric"><div class="name">Нужно листа всего</div><div class="value"><span id="totalMeters">—</span> м</div></div>
+      <div class="metric"><div class="name">Площадь листа</div><div class="value"><span id="sheetAreaM2">—</span> м²</div></div>
+      <div class="metric"><div class="name">Полезная площадь</div><div class="value"><span id="usefulM2">—</span> м²</div></div>
+      <div class="metric"><div class="name">Обрезки всего</div><div class="value"><span id="totalScrapM2">—</span> м²</div></div>
+    </div>
+
+    <div id="savingBox" class="ok"></div>
+
+    <h3>Кол-во листов по ширинам и длинам</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ширина листа</th><th>Длина листа / ряда</th><th>Кол-во листов, шт</th>
+            <th>Всего пог. м</th><th>Площадь листа, м²</th><th>Полезная площадь, м²</th><th>Обрезки, м²</th>
+          </tr>
+        </thead>
+        <tbody id="lengthSummaryRows"></tbody>
+      </table>
+    </div>
+
+    <h3>Итог по изделиям</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Изделие</th><th>Ширина листа, мм</th><th>Ширина заг., мм</th><th>Длина заг., мм</th>
+            <th>Кол-во, шт</th><th>Полезная площадь, м²</th><th>В скольких рядах участвует</th>
+          </tr>
+        </thead>
+        <tbody id="itemResultRows"></tbody>
+      </table>
+    </div>
+
+    <h3>План раскроя по рядам</h3>
+    <div class="table-wrap">
+      <table class="patterns-table">
+        <thead>
+          <tr>
+            <th>Ширина листа</th><th>Длина ряда</th><th>Что помещается по ширине листа</th>
+            <th>Таких рядов</th><th>Занято по ширине</th><th>Остаток ширины</th><th>Листа, м</th><th>Обрезки, м²</th>
+          </tr>
+        </thead>
+        <tbody id="patternRows"></tbody>
+      </table>
+    </div>
+
+    <h3>Чертёж раскладки разверток на листе</h3>
+    <div class="note">Чертёж строится по уникальным вариантам раскладки. Размеры на схеме пропорциональны реальным размерам; при печати используется заданный масштаб.</div>
+    <div id="drawings" class="drawings"></div>
+
+    <h3>Формулы</h3>
+    <div class="formula">
+      1) Изделия группируются по одинаковой ширине листа.<br>
+      2) Внутри группы заготовки сортируются: сначала по длине от большей к меньшей, затем по ширине от большей к меньшей.<br>
+      3) Заготовка ставится в первый ряд, где хватает остатка по ширине.<br>
+      4) Длина ряда = максимальная длина заготовки в этом ряду.<br>
+      5) Площадь ряда = ширина листа / 1000 × длина ряда / 1000.<br>
+      6) Полезная площадь ряда = сумма(ширина заготовки / 1000 × длина заготовки / 1000).<br>
+      7) Обрезки = площадь ряда - полезная площадь ряда.
+    </div>
+  </section>
+</div>
+
+<script>
+let itemCounter = 0;
+const palette = ["#cfe8ff","#d9f2d9","#ffe3c2","#eadcff","#ffd6dc","#d7f4ef","#f4e8c1","#d8e2ff","#e8d6c8","#d6eef7"];
+
+function fmt(num, digits = 3){
+  if(!isFinite(num)) return "—";
+  return Number(num.toFixed(digits)).toLocaleString("ru-RU");
+}
+function escapeHtml(str){
+  return String(str).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function itemTemplate(id, values = {}){
+  const name = values.name || "Изделие";
+  const sheetWidth = values.sheetWidth || 1250;
+  const blankWidth = values.blankWidth || 120;
+  const blankLength = values.blankLength || 1250;
+  const qty = values.qty || 1;
+  return `
+    <div class="item" data-id="${id}">
+      <div class="item-head">
+        <div class="item-title">Изделие ${id}</div>
+        <button type="button" class="btn-danger" onclick="removeItem(${id})">Удалить</button>
+      </div>
+      <div class="item-grid">
+        <div><label>Название</label><input class="item-name" type="text" value="${escapeHtml(name)}" oninput="calculate()"></div>
+        <div><label>Ширина листа, мм</label><input class="sheet-width" type="number" value="${sheetWidth}" min="1" oninput="calculate()"></div>
+        <div><label>Ширина заготовки, мм</label><input class="blank-width" type="number" value="${blankWidth}" min="1" oninput="calculate()"></div>
+        <div><label>Длина заготовки, мм</label><input class="blank-length" type="number" value="${blankLength}" min="1" oninput="calculate()"></div>
+        <div><label>Количество, шт</label><input class="qty" type="number" value="${qty}" min="1" oninput="calculate()"></div>
+      </div>
+    </div>`;
+}
+function addItem(values = {}){
+  itemCounter += 1;
+  document.getElementById("items").insertAdjacentHTML("beforeend", itemTemplate(itemCounter, values));
+  calculate();
+}
+function removeItem(id){
+  const item = document.querySelector(`.item[data-id="${id}"]`);
+  if(item) item.remove();
+  if(document.querySelectorAll(".item").length === 0){
+    addItem({name:"Уголок", sheetWidth:1250, blankWidth:120, blankLength:1250, qty:400});
+  }
+  calculate();
+}
+function readItems(){
+  return Array.from(document.querySelectorAll(".item")).map((item, index) => ({
+    id:index + 1,
+    name:item.querySelector(".item-name").value.trim() || `Изделие ${index + 1}`,
+    sheetWidth:Number(item.querySelector(".sheet-width").value),
+    width:Number(item.querySelector(".blank-width").value),
+    length:Number(item.querySelector(".blank-length").value),
+    qty:Math.floor(Number(item.querySelector(".qty").value))
+  }));
+}
+function makeSeparateCalc(items){
+  let totalMeters=0,totalSheetArea=0,totalUsefulArea=0,totalScrapArea=0;
+  items.forEach(item => {
+    const perRow = Math.floor(item.sheetWidth / item.width);
+    if(perRow < 1) return;
+    const rows = Math.ceil(item.qty / perRow);
+    const meters = rows * item.length / 1000;
+    const sheetArea = item.sheetWidth / 1000 * meters;
+    const usefulArea = item.qty * item.width / 1000 * item.length / 1000;
+    totalMeters += meters;
+    totalSheetArea += sheetArea;
+    totalUsefulArea += usefulArea;
+    totalScrapArea += sheetArea - usefulArea;
+  });
+  return {totalMeters,totalSheetArea,totalUsefulArea,totalScrapArea};
+}
+function packAll(items){
+  const groups = new Map();
+  const itemStats = new Map();
+
+  items.forEach(item => {
+    const key = String(item.sheetWidth);
+    if(!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+
+    itemStats.set(item.id, {
+      name:item.name, sheetWidth:item.sheetWidth, width:item.width, length:item.length, qty:item.qty,
+      usefulArea:item.qty * item.width / 1000 * item.length / 1000, rowCount:0
+    });
+  });
+
+  const allRows = [];
+
+  groups.forEach((groupItems, sheetWidthKey) => {
+    const sheetWidth = Number(sheetWidthKey);
+    const pieces = [];
+
+    groupItems.forEach(item => {
+      for(let i=0; i<item.qty; i++){
+        pieces.push({itemId:item.id, name:item.name, sheetWidth:item.sheetWidth, width:item.width, length:item.length});
+      }
+    });
+
+    pieces.sort((a,b) => {
+      if(b.length !== a.length) return b.length - a.length;
+      if(b.width !== a.width) return b.width - a.width;
+      return a.name.localeCompare(b.name);
+    });
+
+    const rows = [];
+    pieces.forEach(piece => {
+      let bestRow = null, bestScore = Infinity;
+      rows.forEach(row => {
+        if(row.remaining >= piece.width){
+          const newLength = Math.max(row.length, piece.length);
+          const remainingAfter = row.remaining - piece.width;
+          const lengthIncrease = newLength - row.length;
+          const score = remainingAfter * 10 + lengthIncrease * 2;
+          if(score < bestScore){ bestScore = score; bestRow = row; }
+        }
+      });
+
+      if(bestRow){
+        bestRow.pieces.push(piece);
+        bestRow.used += piece.width;
+        bestRow.remaining -= piece.width;
+        bestRow.length = Math.max(bestRow.length, piece.length);
+      } else {
+        rows.push({sheetWidth, length:piece.length, pieces:[piece], used:piece.width, remaining:sheetWidth - piece.width});
+      }
+    });
+
+    rows.forEach(row => {
+      let x = 0;
+      row.pieces.forEach((piece, i) => {
+        piece.x = x;
+        piece.y = 0;
+        piece.color = palette[(piece.itemId - 1) % palette.length];
+        piece.num = i + 1;
+        x += piece.width;
+      });
+
+      const usedItemsInRow = new Set(row.pieces.map(p => p.itemId));
+      usedItemsInRow.forEach(id => itemStats.get(id).rowCount += 1);
+      allRows.push(row);
+    });
+  });
+
+  return {rows:allRows, itemStats};
+}
+function rowPattern(row){
+  const counts = new Map();
+  row.pieces.forEach(piece => {
+    const key = `${piece.name}|||${piece.width}|||${piece.length}`;
+    if(!counts.has(key)) counts.set(key, {name:piece.name, width:piece.width, length:piece.length, count:0});
+    counts.get(key).count += 1;
+  });
+
+  return Array.from(counts.values())
+    .sort((a,b) => b.length - a.length || b.width - a.width || a.name.localeCompare(b.name))
+    .map(x => `${x.count} шт × ${escapeHtml(x.name)} (${fmt(x.width,0)}×${fmt(x.length,0)} мм)`)
+    .join(" + ");
+}
+function buildSignature(row){
+  const parts = row.pieces.map(p => `${p.name}|${p.width}|${p.length}`).sort();
+  return `${row.sheetWidth}|||${row.length}|||${parts.join(";;;")}`;
+}
+function makeDrawing(pattern, index, scaleDenom){
+  const row = pattern.row;
+  const sheetW = row.sheetWidth;
+  const sheetL = row.length;
+  const m = Math.max(90, Math.min(150, sheetW * 0.08));
+  const vbW = sheetW + m * 2;
+  const vbH = sheetL + m * 2;
+  const cssW = (vbW / scaleDenom).toFixed(2) + "mm";
+  const labelFs = Math.max(24, Math.min(42, sheetL / 14));
+  const dimFs = Math.max(26, Math.min(44, sheetW / 30));
+
+  let pieceSvg = "";
+  let legend = "";
+
+  row.pieces.forEach((p, i) => {
+    const cx = m + p.x + p.width / 2;
+    const cy = m + p.length / 2;
+    const shortWasteH = sheetL - p.length;
+    const num = i + 1;
+    pieceSvg += `
+      <rect x="${m + p.x}" y="${m}" width="${p.width}" height="${p.length}" fill="${p.color}" stroke="#222" stroke-width="2"/>
+      <text x="${cx}" y="${cy}" font-size="${labelFs}" text-anchor="middle" dominant-baseline="middle" font-weight="700">${num}</text>
+      <title>${escapeHtml(p.name)} — ${p.width}×${p.length} мм</title>`;
+    if(shortWasteH > 0){
+      pieceSvg += `
+        <rect x="${m + p.x}" y="${m + p.length}" width="${p.width}" height="${shortWasteH}" fill="url(#hatch)" stroke="#aaa" stroke-width="1"/>
+        ${shortWasteH > 90 && p.width > 80 ? `<text x="${cx}" y="${m + p.length + shortWasteH/2}" font-size="${Math.max(18, dimFs*0.55)}" text-anchor="middle" dominant-baseline="middle" fill="#777">обрезок</text>` : ""}`;
+    }
+    legend += `<div class="legend-item"><span class="swatch" style="background:${p.color}"></span><span><b>${num}</b> — ${escapeHtml(p.name)}, ${fmt(p.width,0)}×${fmt(p.length,0)} мм</span></div>`;
+  });
+
+  if(row.remaining > 0){
+    pieceSvg += `
+      <rect x="${m + row.used}" y="${m}" width="${row.remaining}" height="${sheetL}" fill="url(#hatch)" stroke="#aaa" stroke-width="1"/>
+      ${row.remaining > 80 ? `<text x="${m + row.used + row.remaining/2}" y="${m + sheetL/2}" font-size="${Math.max(18, dimFs*0.55)}" text-anchor="middle" dominant-baseline="middle" fill="#777" transform="rotate(-90 ${m + row.used + row.remaining/2} ${m + sheetL/2})">обрезок ${fmt(row.remaining,0)} мм</text>` : ""}`;
+  }
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vbW} ${vbH}" style="width:${cssW}">
+      <defs>
+        <pattern id="hatch" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="18" height="18" fill="#f4f4f4"/>
+          <line x1="0" y1="0" x2="0" y2="18" stroke="#d0d0d0" stroke-width="4"/>
+        </pattern>
+        <marker id="arrow" markerWidth="14" markerHeight="14" refX="7" refY="7" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L14,7 L0,14 Z" fill="#333"/>
+        </marker>
+      </defs>
+
+      <rect x="${m}" y="${m}" width="${sheetW}" height="${sheetL}" fill="#fafafa" stroke="#111" stroke-width="3"/>
+      ${pieceSvg}
+
+      <line x1="${m}" y1="${m + sheetL + 45}" x2="${m + sheetW}" y2="${m + sheetL + 45}" stroke="#333" stroke-width="3" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+      <text x="${m + sheetW/2}" y="${m + sheetL + 85}" font-size="${dimFs}" text-anchor="middle">${fmt(sheetW,0)} мм</text>
+
+      <line x1="${m + sheetW + 45}" y1="${m}" x2="${m + sheetW + 45}" y2="${m + sheetL}" stroke="#333" stroke-width="3" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+      <text x="${m + sheetW + 85}" y="${m + sheetL/2}" font-size="${dimFs}" text-anchor="middle" transform="rotate(90 ${m + sheetW + 85} ${m + sheetL/2})">${fmt(sheetL,0)} мм</text>
+
+      <text x="${m}" y="${m - 35}" font-size="${dimFs}" font-weight="700">Лист ${fmt(sheetW,0)}×${fmt(sheetL,0)} мм</text>
+    </svg>`;
+
+  return `
+    <div class="drawing-card">
+      <div class="drawing-title">Вариант раскладки ${index}: лист ${fmt(sheetW,0)}×${fmt(sheetL,0)} мм — ${fmt(pattern.count,0)} шт</div>
+      <div class="drawing-meta">Масштаб 1:${fmt(scaleDenom,0)}. Занято по ширине: ${fmt(row.used,0)} мм. Остаток по ширине: ${fmt(row.remaining,0)} мм. Обрезки на этот вариант: ${fmt(pattern.scrap,3)} м².</div>
+      <div class="svg-holder">${svg}</div>
+      <div class="legend">${legend}</div>
+    </div>`;
+}
+function calculate(){
+  const warning = document.getElementById("warning");
+  const itemResultRows = document.getElementById("itemResultRows");
+  const patternRows = document.getElementById("patternRows");
+  const lengthSummaryRows = document.getElementById("lengthSummaryRows");
+  const drawings = document.getElementById("drawings");
+  const savingBox = document.getElementById("savingBox");
+  const scaleDenom = Math.max(1, Number(document.getElementById("scaleDenom").value) || 20);
+
+  warning.style.display = "none";
+  warning.textContent = "";
+  itemResultRows.innerHTML = "";
+  patternRows.innerHTML = "";
+  lengthSummaryRows.innerHTML = "";
+  drawings.innerHTML = "";
+
+  const items = readItems();
+  const validItems = [];
+  const messages = [];
+
+  items.forEach(item => {
+    if(item.sheetWidth <= 0 || item.width <= 0 || item.length <= 0 || item.qty <= 0){
+      messages.push(`${item.name}: ширина листа, ширина заготовки, длина и количество должны быть больше нуля.`);
+      return;
+    }
+    if(item.width > item.sheetWidth){
+      messages.push(`${item.name}: ширина заготовки больше ширины листа.`);
+      return;
+    }
+    validItems.push(item);
+  });
+
+  if(messages.length){
+    warning.innerHTML = messages.map(escapeHtml).join("<br>");
+    warning.style.display = "block";
+  }
+
+  if(!validItems.length){
+    document.getElementById("totalMeters").textContent = "—";
+    document.getElementById("sheetAreaM2").textContent = "—";
+    document.getElementById("usefulM2").textContent = "—";
+    document.getElementById("totalScrapM2").textContent = "—";
+    savingBox.textContent = "Нет корректных изделий для расчёта.";
+    itemResultRows.innerHTML = `<tr><td colspan="7">Нет корректных изделий для расчёта.</td></tr>`;
+    patternRows.innerHTML = `<tr><td colspan="8">Нет корректных изделий для расчёта.</td></tr>`;
+    lengthSummaryRows.innerHTML = `<tr><td colspan="7">Нет корректных изделий для расчёта.</td></tr>`;
+    drawings.innerHTML = `<div class="note">Нет данных для чертежа.</div>`;
+    return;
+  }
+
+  const {rows, itemStats} = packAll(validItems);
+
+  let totalMeters=0,totalSheetArea=0,totalUsefulArea=0,totalScrapArea=0;
+  const patternMap = new Map();
+  const lengthSummaryMap = new Map();
+
+  rows.forEach(row => {
+    const meters = row.length / 1000;
+    const sheetArea = row.sheetWidth / 1000 * meters;
+    const usefulArea = row.pieces.reduce((sum,p) => sum + p.width/1000 * p.length/1000, 0);
+    const scrapArea = sheetArea - usefulArea;
+
+    totalMeters += meters;
+    totalSheetArea += sheetArea;
+    totalUsefulArea += usefulArea;
+    totalScrapArea += scrapArea;
+
+    const signature = buildSignature(row);
+    if(!patternMap.has(signature)){
+      patternMap.set(signature, {row, patternText:rowPattern(row), count:0, meters:0, scrap:0, used:row.used, remaining:row.remaining});
+    }
+    const pattern = patternMap.get(signature);
+    pattern.count += 1;
+    pattern.meters += meters;
+    pattern.scrap += scrapArea;
+
+    const lengthKey = `${row.sheetWidth}|||${row.length}`;
+    if(!lengthSummaryMap.has(lengthKey)){
+      lengthSummaryMap.set(lengthKey, {sheetWidth:row.sheetWidth, length:row.length, count:0, meters:0, sheetArea:0, usefulArea:0, scrapArea:0});
+    }
+    const ls = lengthSummaryMap.get(lengthKey);
+    ls.count += 1;
+    ls.meters += meters;
+    ls.sheetArea += sheetArea;
+    ls.usefulArea += usefulArea;
+    ls.scrapArea += scrapArea;
+  });
+
+  Array.from(lengthSummaryMap.values())
+    .sort((a,b) => a.sheetWidth - b.sheetWidth || b.length - a.length)
+    .forEach(s => {
+      lengthSummaryRows.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td>${fmt(s.sheetWidth,0)} мм</td><td>${fmt(s.length,0)} мм</td><td>${fmt(s.count,0)}</td>
+          <td>${fmt(s.meters,3)}</td><td>${fmt(s.sheetArea,3)}</td><td>${fmt(s.usefulArea,3)}</td><td>${fmt(s.scrapArea,3)}</td>
+        </tr>`);
+    });
+
+  Array.from(itemStats.values())
+    .sort((a,b) => a.sheetWidth - b.sheetWidth || b.length - a.length || b.width - a.width || a.name.localeCompare(b.name))
+    .forEach(s => {
+      itemResultRows.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td>${escapeHtml(s.name)}</td><td>${fmt(s.sheetWidth,0)}</td><td>${fmt(s.width,0)}</td><td>${fmt(s.length,0)}</td>
+          <td>${fmt(s.qty,0)}</td><td>${fmt(s.usefulArea,3)}</td><td>${fmt(s.rowCount,0)}</td>
+        </tr>`);
+    });
+
+  const patterns = Array.from(patternMap.values()).sort((a,b) => a.row.sheetWidth - b.row.sheetWidth || b.row.length - a.row.length || b.used - a.used);
+  patterns.forEach(p => {
+    patternRows.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>${fmt(p.row.sheetWidth,0)} мм</td><td>${fmt(p.row.length,0)} мм</td><td>${p.patternText}</td>
+        <td>${fmt(p.count,0)}</td><td>${fmt(p.used,0)} мм</td><td>${fmt(p.remaining,0)} мм</td>
+        <td>${fmt(p.meters,3)}</td><td>${fmt(p.scrap,3)}</td>
+      </tr>`);
+  });
+
+  drawings.innerHTML = patterns.map((p, i) => makeDrawing(p, i + 1, scaleDenom)).join("");
+
+  const separate = makeSeparateCalc(validItems);
+  const savedMeters = separate.totalMeters - totalMeters;
+  const savedScrap = separate.totalScrapArea - totalScrapArea;
+
+  document.getElementById("totalMeters").textContent = fmt(totalMeters,3);
+  document.getElementById("sheetAreaM2").textContent = fmt(totalSheetArea,3);
+  document.getElementById("usefulM2").textContent = fmt(totalUsefulArea,3);
+  document.getElementById("totalScrapM2").textContent = fmt(totalScrapArea,3);
+
+  if(savedMeters > 0.0001 || savedScrap > 0.0001){
+    savingBox.innerHTML = `За счёт совместного раскроя экономия относительно отдельного раскроя: <b>${fmt(savedMeters,3)} м</b> листа и <b>${fmt(savedScrap,3)} м²</b> обрезков.`;
+  } else {
+    savingBox.innerHTML = `Совместный раскрой рассчитан. Экономии относительно отдельного раскроя нет или она меньше 0,001 м.`;
+  }
+}
+
+addItem({name:"Уголок", sheetWidth:1250, blankWidth:120, blankLength:1250, qty:400});
+addItem({name:"Добор", sheetWidth:1250, blankWidth:50, blankLength:800, qty:40});
+</script>
+</body>
+</html>
